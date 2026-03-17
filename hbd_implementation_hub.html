@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HBD Implementation Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f4f3ef;
+  --bg2: #eceae4;
+  --bg3: #e4e2db;
+  --surface: #ffffff;
+  --surface2: #f8f7f4;
+  --border: rgba(0,0,0,0.08);
+  --border-hi: rgba(0,0,0,0.16);
+  --text: #1a1a18;
+  --text-muted: #5a5a55;
+  --text-dim: rgba(0,0,0,0.3);
+  --ns: #1D9E75;
+  --ns-bg: #E1F5EE;
+  --ns-dark: #085041;
+  --ns-mid: #9FE1CB;
+  --hs: #7F77DD;
+  --hs-bg: #EEEDFE;
+  --hs-dark: #3C3489;
+  --hs-mid: #CECBF6;
+  --hr: #D85A30;
+  --hr-bg: #FAECE7;
+  --hr-dark: #712B13;
+  --hr-mid: #F5C4B3;
+  --risk: #E24B4A;
+  --risk-bg: #FCEBEB;
+  --risk-dark: #791F1F;
+  --amber: #BA7517;
+  --amber-bg: #FAEEDA;
+  --mono: 'DM Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  min-height: 100vh;
+}
+
+/* NAV */
+.nav {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 40px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.nav-brand {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  padding: 18px 24px 18px 0;
+  border-right: 1px solid var(--border);
+  margin-right: 8px;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+.nav-brand span { color: var(--ns); }
+.nav-tab {
+  padding: 18px 18px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.nav-tab:hover { color: var(--text); }
+.nav-tab.active { color: var(--text); border-bottom-color: var(--ns); font-weight: 500; }
+
+/* MAIN */
+.main { padding: 36px 40px 60px; max-width: 1400px; margin: 0 auto; }
+.section { display: none; }
+.section.active { display: block; }
+
+/* PAGE HEADERS */
+.page-header { margin-bottom: 28px; }
+.page-title { font-size: 22px; font-weight: 300; letter-spacing: -0.02em; color: var(--text); }
+.page-title strong { font-weight: 600; }
+.page-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 5px; line-height: 1.5; }
+
+/* CARDS */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+/* =====================
+   SECTION 1: HYPERCARE CALENDAR
+   ===================== */
+.sys-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+@media (max-width: 900px) { .sys-grid { grid-template-columns: 1fr; } }
+
+.sys-card { border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); overflow: hidden; }
+.sys-card.dimmed { opacity: 0.2; transform: scale(0.98); transition: all 0.3s; }
+
+.sys-card-header { padding: 14px 16px 12px; position: relative; }
+.sh-ns { background: var(--ns-bg); border-bottom: 1px solid rgba(29,158,117,0.2); }
+.sh-hs { background: var(--hs-bg); border-bottom: 1px solid rgba(127,119,221,0.2); }
+.sh-hr { background: var(--hr-bg); border-bottom: 1px solid rgba(216,90,48,0.2); }
+
+.sh-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.sh-ns .sh-name { color: var(--ns-dark); }
+.sh-hs .sh-name { color: var(--hs-dark); }
+.sh-hr .sh-name { color: var(--hr-dark); }
+
+.sh-lead { font-size: 10px; font-family: var(--mono); }
+.sh-ns .sh-lead { color: var(--ns-dark); }
+.sh-hs .sh-lead { color: var(--hs-dark); }
+.sh-hr .sh-lead { color: var(--hr-dark); }
+
+.sh-note { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+.badge-covered { position: absolute; top: 12px; right: 12px; background: rgba(29,158,117,0.15); border: 1px solid rgba(29,158,117,0.3); border-radius: 20px; padding: 2px 8px; font-size: 9px; font-family: var(--mono); color: var(--ns-dark); letter-spacing: 0.05em; text-transform: uppercase; }
+.badge-watch { position: absolute; top: 12px; right: 12px; background: rgba(226,75,74,0.1); border: 1px solid rgba(226,75,74,0.3); border-radius: 20px; padding: 2px 8px; font-size: 9px; font-family: var(--mono); color: var(--risk-dark); letter-spacing: 0.05em; text-transform: uppercase; }
+
+.hc-col-heads { display: grid; grid-template-columns: 88px 78px repeat(5, 1fr); padding: 7px 12px; background: var(--surface2); border-bottom: 1px solid var(--border); gap: 3px; }
+.hc-ch { font-size: 9px; font-family: var(--mono); color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; text-align: center; }
+.hc-ch.la { text-align: left; }
+
+.wave-div { padding: 6px 12px 3px; font-size: 9px; font-family: var(--mono); color: var(--text-dim); letter-spacing: 0.06em; text-transform: uppercase; background: var(--surface2); border-bottom: 1px solid var(--border); }
+
+.hc-row { display: grid; grid-template-columns: 88px 78px repeat(5, 1fr); padding: 7px 12px; border-bottom: 1px solid var(--border); gap: 3px; align-items: center; cursor: pointer; transition: background 0.1s; }
+.hc-row:last-of-type { border-bottom: none; }
+.hc-row:hover { background: var(--surface2); }
+.hc-row.hl { background: #f0f9f5; }
+
+.hc-bu { font-size: 11px; font-weight: 500; color: var(--text); }
+.hc-op { font-size: 9px; font-family: var(--mono); color: var(--text-muted); }
+.hc-cell { display: flex; flex-direction: column; gap: 2px; align-items: center; }
+
+.pill { border-radius: 4px; padding: 2px 5px; font-size: 8px; font-weight: 500; font-family: var(--mono); display: block; text-align: center; white-space: nowrap; width: 100%; }
+.p-go-ns { background: var(--ns-bg); color: var(--ns-dark); border: 0.5px solid rgba(29,158,117,0.3); }
+.p-go-hs { background: var(--hs-bg); color: var(--hs-dark); border: 0.5px solid rgba(127,119,221,0.3); }
+.p-go-hr { background: var(--hr-bg); color: var(--hr-dark); border: 0.5px solid rgba(216,90,48,0.3); }
+.p-hc-ns { background: #c8eedd; color: var(--ns-dark); border: 0.5px solid rgba(29,158,117,0.2); }
+.p-hc-hs { background: #dddcf8; color: var(--hs-dark); border: 0.5px solid rgba(127,119,221,0.2); }
+.p-hc-hr { background: #f5d5c8; color: var(--hr-dark); border: 0.5px solid rgba(216,90,48,0.2); }
+.p-risk { background: var(--risk-bg); color: var(--risk-dark); border: 0.5px solid rgba(226,75,74,0.4); font-size: 7.5px; font-weight: 600; }
+.p-empty { color: var(--text-dim); font-size: 10px; text-align: center; display: block; width: 100%; }
+
+.load-bar { display: grid; grid-template-columns: 88px 78px repeat(5, 1fr); padding: 8px 12px; background: var(--bg2); border-top: 1px solid var(--border-hi); gap: 3px; align-items: center; }
+.load-lbl { font-size: 9px; font-family: var(--mono); color: var(--text-muted); grid-column: span 2; }
+.load-val { font-size: 12px; font-weight: 600; font-family: var(--mono); text-align: center; color: var(--text-dim); }
+.load-hi { color: var(--amber); }
+.load-cr { color: var(--risk); }
+
+.hc-filter-row { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+.filter-btn { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 11px; font-family: var(--mono); color: var(--text-muted); cursor: pointer; transition: all 0.2s; }
+.filter-btn:hover { border-color: var(--border-hi); color: var(--text); }
+.filter-btn.active { background: var(--ns-bg); border-color: rgba(29,158,117,0.4); color: var(--ns-dark); font-weight: 500; }
+
+.hc-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.legend-card, .risk-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+.section-label { font-size: 9px; font-family: var(--mono); color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+.leg-items { display: flex; flex-wrap: wrap; gap: 8px; }
+.leg-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); }
+
+.risk-items { display: flex; flex-direction: column; gap: 8px; }
+.risk-item { display: flex; gap: 10px; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--surface2); border: 1px solid var(--border); }
+.r-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.r-dot.cr { background: var(--risk); }
+.r-dot.hi { background: var(--amber); }
+.r-dot.ok { background: var(--ns); }
+.r-text strong { display: block; font-size: 11px; font-weight: 500; margin-bottom: 2px; }
+.r-text p { font-size: 10px; color: var(--text-muted); line-height: 1.5; }
+
+/* TOOLTIP */
+.tooltip { position: fixed; background: var(--surface); border: 1px solid var(--border-hi); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 11px; color: var(--text); pointer-events: none; z-index: 1000; max-width: 220px; display: none; line-height: 1.5; box-shadow: 0 4px 20px rgba(0,0,0,0.12); }
+.tooltip strong { display: block; font-size: 12px; margin-bottom: 4px; }
+
+/* =====================
+   SECTION 2: MITIGATION PLAN
+   ===================== */
+.mit-block { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 14px; }
+.mit-header { padding: 16px 20px; display: flex; align-items: flex-start; gap: 12px; cursor: pointer; user-select: none; transition: background 0.1s; }
+.mit-header:hover { background: var(--surface2); }
+.m-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.m-dot.cr { background: var(--risk); }
+.m-dot.hi { background: #EF9F27; }
+.m-dot.ok { background: var(--ns); }
+.m-title-block { flex: 1; }
+.m-label { font-size: 9px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
+.m-label.cr { color: var(--risk); }
+.m-label.hi { color: #BA7517; }
+.m-label.ok { color: var(--ns); }
+.m-title { font-size: 14px; font-weight: 500; color: var(--text); }
+.m-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; line-height: 1.5; }
+.m-chevron { font-size: 11px; color: var(--text-dim); margin-top: 4px; transition: transform 0.2s; }
+.m-chevron.open { transform: rotate(180deg); }
+.mit-body { border-top: 1px solid var(--border); display: none; }
+.mit-body.open { display: block; }
+
+.resolved-banner { background: #E1F5EE; border-bottom: 1px solid rgba(29,158,117,0.2); padding: 7px 20px; font-size: 11px; color: var(--ns-dark); font-family: var(--mono); }
+
+.mit-table { width: 100%; border-collapse: collapse; }
+.mit-table th { font-size: 9px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); padding: 10px 20px 8px; text-align: left; border-bottom: 1px solid var(--border); background: var(--surface2); }
+.mit-table td { padding: 12px 20px; font-size: 12px; color: var(--text); border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.6; }
+.mit-table tr:last-child td { border-bottom: none; }
+.mit-table tr:hover td { background: var(--surface2); }
+.a-num { font-size: 10px; font-family: var(--mono); color: var(--text-dim); }
+.a-text { font-size: 12px; font-weight: 500; color: var(--text); }
+.a-detail { font-size: 11px; color: var(--text-muted); margin-top: 3px; line-height: 1.6; }
+
+.o-pill { display: inline-block; border-radius: 20px; padding: 2px 10px; font-size: 10px; font-weight: 500; white-space: nowrap; }
+.o-sophie { background: var(--ns-bg); color: var(--ns-dark); }
+.o-mike   { background: var(--hr-bg); color: var(--hr-dark); }
+.o-tom    { background: var(--hr-bg); color: var(--hr-dark); }
+.o-bu     { background: var(--bg2); color: var(--text-muted); }
+
+.t-pill { display: inline-block; border-radius: 4px; padding: 2px 8px; font-size: 10px; font-family: var(--mono); white-space: nowrap; }
+.t-now { background: rgba(226,75,74,0.1); color: var(--risk-dark); }
+.t-pre { background: var(--amber-bg); color: #633806; }
+.t-oct { background: var(--ns-bg); color: var(--ns-dark); }
+
+/* =====================
+   SECTION 3: CHANGE MANAGEMENT CALENDAR
+   ===================== */
+.cm-wrap { overflow-x: auto; }
+.cm-grid { min-width: 900px; }
+
+.cm-month-header { display: grid; grid-template-columns: 160px repeat(8, 1fr); padding: 0 0 8px; border-bottom: 2px solid var(--border-hi); margin-bottom: 4px; }
+.cm-month { font-size: 10px; font-weight: 500; text-align: center; color: var(--text-muted); letter-spacing: 0.04em; text-transform: uppercase; padding: 4px 2px; }
+.cm-month.now { color: var(--ns); font-weight: 600; }
+.cm-month.go { color: var(--text); font-weight: 600; }
+
+.cm-lane-title { font-size: 9px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 12px 0 4px; }
+.cm-lane-title.corp { color: var(--ns); }
+.cm-lane-title.supp { color: var(--hs); }
+.cm-lane-title.bu   { color: var(--text-muted); }
+
+.cm-row { display: grid; grid-template-columns: 160px repeat(8, 1fr); min-height: 36px; margin-bottom: 3px; align-items: start; gap: 0; }
+.cm-row-label { font-size: 11px; color: var(--text-muted); padding-right: 12px; padding-top: 4px; line-height: 1.3; }
+.cm-row-label strong { display: block; font-size: 11px; font-weight: 500; color: var(--text); }
+.cm-row-label small { font-size: 10px; color: var(--text-dim); }
+.cm-cell { padding: 2px 2px; display: flex; flex-direction: column; gap: 2px; }
+
+.ev { border-radius: 4px; padding: 3px 6px; font-size: 9.5px; font-weight: 500; line-height: 1.3; cursor: default; }
+.ev-corp     { background: var(--ns-bg); color: var(--ns-dark); border: 0.5px solid rgba(29,158,117,0.25); }
+.ev-corp-hi  { background: var(--ns-mid); color: #04342C; border: 0.5px solid rgba(29,158,117,0.4); }
+.ev-supp     { background: var(--hs-bg); color: var(--hs-dark); border: 0.5px solid rgba(127,119,221,0.25); }
+.ev-supp-hi  { background: var(--hs-mid); color: #26215C; border: 0.5px solid rgba(127,119,221,0.4); }
+.ev-bu       { background: var(--bg2); color: var(--text-muted); border: 0.5px solid var(--border); }
+.ev-training { background: var(--amber-bg); color: #412402; border: 0.5px solid rgba(186,117,23,0.3); font-weight: 600; }
+.ev-done     { background: var(--bg3); color: var(--text-dim); border: 0.5px solid var(--border); text-decoration: line-through; font-weight: 400; }
+.ev-wave     { background: var(--hr-bg); color: var(--hr-dark); border: 0.5px solid rgba(216,90,48,0.25); }
+
+.cm-divider { border: none; border-top: 1px solid var(--border); margin: 10px 0 6px; }
+
+.cm-legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+.cm-leg { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--text-muted); }
+.cm-leg-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+/* TRAINING SECTION */
+.training-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 20px; }
+@media (max-width: 900px) { .training-grid { grid-template-columns: 1fr; } }
+.training-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.tc-header { padding: 12px 16px; }
+.tc-ns { background: var(--ns-bg); border-bottom: 1px solid rgba(29,158,117,0.2); }
+.tc-hs { background: var(--hs-bg); border-bottom: 1px solid rgba(127,119,221,0.2); }
+.tc-hr { background: var(--hr-bg); border-bottom: 1px solid rgba(216,90,48,0.2); }
+.tc-title { font-size: 12px; font-weight: 600; }
+.tc-ns .tc-title { color: var(--ns-dark); }
+.tc-hs .tc-title { color: var(--hs-dark); }
+.tc-hr .tc-title { color: var(--hr-dark); }
+.tc-meta { font-size: 10px; margin-top: 2px; opacity: 0.75; }
+.tc-ns .tc-meta { color: var(--ns-dark); }
+.tc-hs .tc-meta { color: var(--hs-dark); }
+.tc-hr .tc-meta { color: var(--hr-dark); }
+.tc-body { padding: 14px 16px; }
+.tc-session { padding: 8px 10px; border-radius: var(--radius-sm); background: var(--surface2); border: 1px solid var(--border); margin-bottom: 6px; }
+.tc-session:last-child { margin-bottom: 0; }
+.tc-session-title { font-size: 11px; font-weight: 500; color: var(--text); }
+.tc-session-meta { font-size: 10px; color: var(--text-muted); margin-top: 2px; font-family: var(--mono); }
+.tc-session-note { font-size: 10px; color: var(--text-muted); margin-top: 3px; line-height: 1.4; }
+.tc-tip { margin-top: 12px; padding: 8px 10px; background: var(--amber-bg); border-radius: var(--radius-sm); font-size: 10px; color: #633806; line-height: 1.5; border: 0.5px solid rgba(186,117,23,0.2); }
+</style>
+</head>
+<body>
+
+<div class="tooltip" id="tooltip"></div>
+
+<nav class="nav">
+  <div class="nav-brand">HBD <span>Implementation</span></div>
+  <div class="nav-tab active" onclick="switchTab('hypercare', this)">Hypercare calendar</div>
+  <div class="nav-tab" onclick="switchTab('mitigation', this)">Mitigation plan</div>
+  <div class="nav-tab" onclick="switchTab('changemanagement', this)">Change management</div>
+  <div class="nav-tab" onclick="switchTab('training', this)">Training rollout</div>
+</nav>
+
+<div class="main">
+
+  <!-- ===================== HYPERCARE CALENDAR ===================== -->
+  <div class="section active" id="sec-hypercare">
+    <div class="page-header">
+      <div class="page-title">Hypercare <strong>calendar</strong></div>
+      <div class="page-subtitle">Go-live and hypercare windows by system lead · NS / HubSpot / HRIS · 2025 · Click a BU row to highlight across all systems</div>
+    </div>
+
+    <div class="hc-filter-row">
+      <button class="filter-btn active" onclick="filterSys('all', this)">All systems</button>
+      <button class="filter-btn" onclick="filterSys('ns', this)">NetSuite</button>
+      <button class="filter-btn" onclick="filterSys('hs', this)">HubSpot</button>
+      <button class="filter-btn" onclick="filterSys('hr', this)">HRIS</button>
+    </div>
+
+    <div class="sys-grid">
+
+      <!-- NETSUITE -->
+      <div class="sys-card" id="card-ns">
+        <div class="sys-card-header sh-ns">
+          <div class="badge-watch">Watch</div>
+          <div class="sh-name">NetSuite — ERP</div>
+          <div class="sh-lead">HBD Leads: Mike / Tom M.</div>
+          <div class="sh-note">PMO support throughout · Tom active through hypercare</div>
+        </div>
+        <div class="hc-col-heads">
+          <div class="hc-ch la">BU</div><div class="hc-ch la">Operator</div>
+          <div class="hc-ch">Jul</div><div class="hc-ch">Aug</div><div class="hc-ch">Sep</div><div class="hc-ch">Oct</div><div class="hc-ch">Nov</div>
+        </div>
+        <div class="wave-div">Wave 1 — go-live 7/1</div>
+        <div class="hc-row" data-bu="blushark" onmouseenter="tip(event,'BluShark / NS','Yuan is operator. Tom covers NS hypercare. 2 months stable before HRIS go-live in Sep.')" onmouseleave="hideTip()">
+          <div class="hc-bu">BluShark</div><div class="hc-op">Yuan</div>
+          <div class="hc-cell"><span class="pill p-go-ns">Live</span></div>
+          <div class="hc-cell"><span class="pill p-hc-ns">HC</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+        </div>
+        <div class="wave-div">Wave 2 — go-live 8/1</div>
+        <div class="hc-row" data-bu="hennessey" onmouseenter="tip(event,'Hennessey / NS','Michele is operator. Tom covers NS hypercare.')" onmouseleave="hideTip()">
+          <div class="hc-bu">Hennessey</div><div class="hc-op">Michele</div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="pill p-go-ns">Live</span></div>
+          <div class="hc-cell"><span class="pill p-hc-ns">HC</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+        </div>
+        <div class="hc-row" data-bu="cj" onmouseenter="tip(event,'CJ / NS','Robert & Bryan are operators. Tom covers NS hypercare.')" onmouseleave="hideTip()">
+          <div class="hc-bu">CJ</div><div class="hc-op">Robert/Bryan</div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="pill p-go-ns">Live</span></div>
+          <div class="hc-cell"><span class="pill p-hc-ns">HC</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+        </div>
+        <div class="wave-div">Wave 3 — go-live 9/1</div>
+        <div class="hc-row" data-bu="tnt" onmouseenter="tip(event,'TNT / NS ⚠','Tom/Tracie are BU operators. Still in NS hypercare when HRIS goes live Oct 1.')" onmouseleave="hideTip()">
+          <div class="hc-bu">TNT</div><div class="hc-op">Tom/Tracie</div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="pill p-go-ns">Live</span></div>
+          <div class="hc-cell"><span class="pill p-hc-ns">HC</span></div>
+          <div class="hc-cell"><span class="pill p-hc-ns">HC</span></div>
+        </div>
+        <div class="hc-row" data-bu="jd" onmouseenter="tip(event,'JD / NS ⚠','Derek is BU operator — solo lead. Still in NS hypercare when HRIS goes live Oct 1.')" onmouseleave="hideTip()">
+          <div class="hc-bu">JD</div><div class="hc-op">Derek</div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="pill p-go-ns">Live</span></div>
+          <div class="hc-cell"><span class="pill p-hc-ns">HC</span></div>
+          <div class="hc-cell"><span class="pill p-hc-ns">HC</span></div>
+        </div>
+        <div class="hc-row" data-bu="ion" onmouseenter="tip(event,'Ion / NS ⚠','Alli is BU operator. Still in NS hypercare when HRIS goes live Oct 1.')" onmouseleave="hideTip()">
+          <div class="hc-bu">Ion</div><div class="hc-op">Alli</div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="pill p-go-ns">Live</span></div>
+          <div class="hc-cell"><span class="pill p-hc-ns">HC</span></div>
+          <div class="hc-cell"><span class="pill p-hc-ns">HC</span></div>
+        </div>
+        <div class="load-bar">
+          <div class="load-lbl">Mike / Tom active BUs</div>
+          <div class="load-val">1</div><div class="load-val load-hi">3</div><div class="load-val load-hi">5</div><div class="load-val load-cr">6 ⚠</div><div class="load-val load-hi">3</div>
+        </div>
+      </div>
+
+      <!-- HUBSPOT -->
+      <div class="sys-card" id="card-hs">
+        <div class="sys-card-header sh-hs">
+          <div class="badge-covered">Covered</div>
+          <div class="sh-name">HubSpot — CRM</div>
+          <div class="sh-lead">HBD Leads: Coulsen / Kathleen</div>
+          <div class="sh-note">Dedicated support — well resourced</div>
+        </div>
+        <div class="hc-col-heads">
+          <div class="hc-ch la">BU</div><div class="hc-ch la">Operator</div>
+          <div class="hc-ch">Jul</div><div class="hc-ch">Aug</div><div class="hc-ch">Sep</div><div class="hc-ch">Oct</div><div class="hc-ch">Nov</div>
+        </div>
+        <div class="wave-div">Wave 1 — go-live 7/1</div>
+        <div class="hc-row" data-bu="blushark" onmouseenter="tip(event,'BluShark / HubSpot','Bryan is operator. Coulsen + Kathleen provide dedicated support.')" onmouseleave="hideTip()">
+          <div class="hc-bu">BluShark</div><div class="hc-op">Bryan</div>
+          <div class="hc-cell"><span class="pill p-go-hs">Live</span></div>
+          <div class="hc-cell"><span class="pill p-hc-hs">HC</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+        </div>
+        <div class="wave-div">Wave 2 — go-live 8/1</div>
+        <div class="hc-row" data-bu="hennessey" onmouseenter="tip(event,'Hennessey / HubSpot','Scott is operator.')" onmouseleave="hideTip()">
+          <div class="hc-bu">Hennessey</div><div class="hc-op">Scott</div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="pill p-go-hs">Live</span></div>
+          <div class="hc-cell"><span class="pill p-hc-hs">HC</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+        </div>
+        <div class="hc-row" data-bu="cj" onmouseenter="tip(event,'CJ / HubSpot','Greg & Kathy are operators.')" onmouseleave="hideTip()">
+          <div class="hc-bu">CJ</div><div class="hc-op">Greg/Kathy</div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="pill p-go-hs">Live</span></div>
+          <div class="hc-cell"><span class="pill p-hc-hs">HC</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+        </div>
+        <div class="wave-div">Wave 3 — go-live 9/1</div>
+        <div class="hc-row" data-bu="tnt" onmouseenter="tip(event,'TNT / HubSpot','Tim K. is operator.')" onmouseleave="hideTip()">
+          <div class="hc-bu">TNT</div><div class="hc-op">Tim K.</div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="pill p-go-hs">Live</span></div>
+          <div class="hc-cell"><span class="pill p-hc-hs">HC</span></div>
+          <div class="hc-cell"><span class="pill p-hc-hs">HC</span></div>
+        </div>
+        <div class="hc-row" data-bu="jd" onmouseenter="tip(event,'JD / HubSpot','Jeremy is operator.')" onmouseleave="hideTip()">
+          <div class="hc-bu">JD</div><div class="hc-op">Jeremy</div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="pill p-go-hs">Live</span></div>
+          <div class="hc-cell"><span class="pill p-hc-hs">HC</span></div>
+          <div class="hc-cell"><span class="pill p-hc-hs">HC</span></div>
+        </div>
+        <div class="hc-row" data-bu="ion" onmouseenter="tip(event,'Ion / HubSpot','Luke is operator.')" onmouseleave="hideTip()">
+          <div class="hc-bu">Ion</div><div class="hc-op">Luke</div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="pill p-go-hs">Live</span></div>
+          <div class="hc-cell"><span class="pill p-hc-hs">HC</span></div>
+          <div class="hc-cell"><span class="pill p-hc-hs">HC</span></div>
+        </div>
+        <div class="load-bar">
+          <div class="load-lbl">Coulsen active BUs</div>
+          <div class="load-val">1</div><div class="load-val">3</div><div class="load-val load-hi">5</div><div class="load-val load-hi">3</div><div class="load-val">3</div>
+        </div>
+      </div>
+
+      <!-- HRIS -->
+      <div class="sys-card" id="card-hr">
+        <div class="sys-card-header sh-hr">
+          <div class="badge-watch">Watch</div>
+          <div class="sh-name">Paylocity — HRIS</div>
+          <div class="sh-lead">HBD Lead: Mike</div>
+          <div class="sh-note">PMO support throughout</div>
+        </div>
+        <div class="hc-col-heads">
+          <div class="hc-ch la">BU</div><div class="hc-ch la">Operator</div>
+          <div class="hc-ch">Jul</div><div class="hc-ch">Aug</div><div class="hc-ch">Sep</div><div class="hc-ch">Oct</div><div class="hc-ch">Nov</div>
+        </div>
+        <div class="wave-div">Wave 1 — go-live 9/1</div>
+        <div class="hc-row" data-bu="blushark" onmouseenter="tip(event,'BluShark / HRIS','Dalton & Yuan are operators. First HRIS go-live — peer resource for Wave 3 in Oct.')" onmouseleave="hideTip()">
+          <div class="hc-bu">BluShark</div><div class="hc-op">Dalton/Yuan</div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="pill p-go-hr">Live</span></div>
+          <div class="hc-cell"><span class="pill p-hc-hr">HC</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+        </div>
+        <div class="wave-div">Wave 2 — go-live 10/1 (all remaining)</div>
+        <div class="hc-row" data-bu="tnt" onmouseenter="tip(event,'TNT / HRIS ⚠ Concurrent risk','Tom & Tracie are operators. HRIS go-live while still in NS hypercare. Two systems in flux simultaneously.')" onmouseleave="hideTip()">
+          <div class="hc-bu">TNT</div><div class="hc-op">Tom/Tracie</div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="pill p-risk">Live + NS HC</span></div>
+          <div class="hc-cell"><span class="pill p-hc-hr">HC</span></div>
+        </div>
+        <div class="hc-row" data-bu="hennessey" onmouseenter="tip(event,'Hennessey / HRIS','Michele is operator. NS HC complete before HRIS go-live.')" onmouseleave="hideTip()">
+          <div class="hc-bu">Hennessey</div><div class="hc-op">Michele</div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="pill p-go-hr">Live</span></div>
+          <div class="hc-cell"><span class="pill p-hc-hr">HC</span></div>
+        </div>
+        <div class="hc-row" data-bu="cj" onmouseenter="tip(event,'CJ / HRIS','Greg & Bryan are operators. NS HC complete before HRIS go-live.')" onmouseleave="hideTip()">
+          <div class="hc-bu">CJ</div><div class="hc-op">Greg/Bryan</div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="pill p-go-hr">Live</span></div>
+          <div class="hc-cell"><span class="pill p-hc-hr">HC</span></div>
+        </div>
+        <div class="hc-row" data-bu="jd" onmouseenter="tip(event,'JD / HRIS ⚠ Concurrent risk','Derek & Christy are operators. HRIS go-live while in NS hypercare. Derek is solo BU lead — confirm Christy active.')" onmouseleave="hideTip()">
+          <div class="hc-bu">JD</div><div class="hc-op">Derek/Christy</div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="pill p-risk">Live + NS HC</span></div>
+          <div class="hc-cell"><span class="pill p-hc-hr">HC</span></div>
+        </div>
+        <div class="hc-row" data-bu="ion" onmouseenter="tip(event,'Ion / HRIS ⚠ Concurrent risk','Sarah & Alli are operators. HRIS go-live while in NS hypercare.')" onmouseleave="hideTip()">
+          <div class="hc-bu">Ion</div><div class="hc-op">Sarah/Alli</div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="p-empty">—</span></div>
+          <div class="hc-cell"><span class="pill p-risk">Live + NS HC</span></div>
+          <div class="hc-cell"><span class="pill p-hc-hr">HC</span></div>
+        </div>
+        <div class="load-bar">
+          <div class="load-lbl">Mike active BUs</div>
+          <div class="load-val">—</div><div class="load-val">—</div><div class="load-val">1</div><div class="load-val load-cr">6 ⚠</div><div class="load-val load-hi">5</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="hc-bottom">
+      <div class="legend-card">
+        <div class="section-label">Legend</div>
+        <div class="leg-items">
+          <div class="leg-item"><span class="pill p-go-ns" style="width:auto;padding:2px 8px">Live</span> System go-live</div>
+          <div class="leg-item"><span class="pill p-hc-ns" style="width:auto;padding:2px 8px">HC</span> Hypercare (~6 wks)</div>
+          <div class="leg-item"><span class="pill p-hc-hs" style="width:auto;padding:2px 8px">HC</span> HubSpot hypercare</div>
+          <div class="leg-item"><span class="pill p-hc-hr" style="width:auto;padding:2px 8px">HC</span> HRIS hypercare</div>
+          <div class="leg-item"><span class="pill p-risk" style="width:auto;padding:2px 8px">Live + HC</span> Concurrent risk</div>
+        </div>
+      </div>
+      <div class="risk-card">
+        <div class="section-label">Key risks</div>
+        <div class="risk-items">
+          <div class="risk-item"><div class="r-dot cr"></div><div class="r-text"><strong>October: Mike carries 12 HC windows</strong><p>Tom absorbs NS for Wave 3 · Sophie runs daily standup · see Mitigation plan tab</p></div></div>
+          <div class="risk-item"><div class="r-dot hi"></div><div class="r-text"><strong>TNT, JD, Ion: concurrent go-lives Oct 1</strong><p>Wave 3 BUs in NS hypercare + HRIS launch simultaneously</p></div></div>
+          <div class="risk-item"><div class="r-dot ok"></div><div class="r-text"><strong>BluShark: leverage as peer resource</strong><p>Yuan & Dalton most experienced operators by Oct · designate formally</p></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MITIGATION PLAN ===================== -->
+  <div class="section" id="sec-mitigation">
+    <div class="page-header">
+      <div class="page-title">Risk <strong>mitigation plan</strong></div>
+      <div class="page-subtitle">Three identified risks with action plans, owners, and timing · Click each risk to expand</div>
+    </div>
+
+    <div class="mit-block">
+      <div class="mit-header" onclick="toggleMit('m1')">
+        <div class="m-dot cr"></div>
+        <div class="m-title-block">
+          <div class="m-label cr">Critical risk</div>
+          <div class="m-title">Mike owns 12 active hypercare windows in October</div>
+          <div class="m-subtitle">6 BUs in HRIS + 6 in NS simultaneously · Tom confirmed active through hypercare · Sophie providing PMO support</div>
+        </div>
+        <div class="m-chevron open" id="chev-m1">▼</div>
+      </div>
+      <div class="mit-body open" id="body-m1">
+        <div class="resolved-banner">✓ Tom M. confirmed as active NS co-lead through hypercare — absorbs NS escalations for Wave 3 BUs</div>
+        <table class="mit-table">
+          <thead><tr><th style="width:30px">#</th><th>Action</th><th style="width:110px">Owner</th><th style="width:90px">Timing</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="a-num">01</td>
+              <td><div class="a-text">Split NS and HRIS hypercare ownership between Mike and Tom</div><div class="a-detail">Tom owns NS hypercare escalations for Wave 3 BUs (TNT, JD, Ion) in October. Mike owns all HRIS hypercare across all 6 BUs. This halves Mike's effective load — the single highest-leverage change available.</div></td>
+              <td><span class="o-pill o-sophie">Sophie</span></td>
+              <td><span class="t-pill t-now">Now</span></td>
+            </tr>
+            <tr>
+              <td class="a-num">02</td>
+              <td><div class="a-text">Define Mike and Tom's lanes in writing before October</div><div class="a-detail">Mike owns HRIS configuration, Paylocity vendor escalation, and payroll issues. Tom owns NS configuration, NetSuite implementor escalation, and finance/reporting issues. Neither crosses lanes without looping in Sophie first.</div></td>
+              <td><span class="o-pill o-sophie">Sophie</span></td>
+              <td><span class="t-pill t-pre">Pre-Oct</span></td>
+            </tr>
+            <tr>
+              <td class="a-num">03</td>
+              <td><div class="a-text">Set structured office hours for Mike and Tom in October</div><div class="a-detail">Two 90-min blocks per day each: morning (overnight issues) and afternoon (escalations, implementor calls). BU leads book into these slots rather than pinging ad hoc. Sophie manages the queue between blocks.</div></td>
+              <td><span class="o-pill o-mike">Mike / Tom</span></td>
+              <td><span class="t-pill t-pre">Pre-Oct</span></td>
+            </tr>
+            <tr>
+              <td class="a-num">04</td>
+              <td><div class="a-text">Sophie runs the daily hypercare standup — not Mike or Tom</div><div class="a-detail">15 mins, same time every day in October. Sophie facilitates. Each BU lead reports: what broke, what's resolved, what's at risk in the next 48hrs. Mike and Tom join only if there's a P1 open or a cross-BU pattern that needs them.</div></td>
+              <td><span class="o-pill o-sophie">Sophie</span></td>
+              <td><span class="t-pill t-oct">Oct daily</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="mit-block">
+      <div class="mit-header" onclick="toggleMit('m2')">
+        <div class="m-dot hi"></div>
+        <div class="m-title-block">
+          <div class="m-label hi">High risk</div>
+          <div class="m-title">TNT, JD, Ion: concurrent go-lives on Oct 1</div>
+          <div class="m-subtitle">Wave 3 BUs go live on HRIS while only 4 weeks into NS hypercare — operators managing two live systems simultaneously</div>
+        </div>
+        <div class="m-chevron open" id="chev-m2">▼</div>
+      </div>
+      <div class="mit-body open" id="body-m2">
+        <table class="mit-table">
+          <thead><tr><th style="width:30px">#</th><th>Action</th><th style="width:110px">Owner</th><th style="width:90px">Timing</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="a-num">01</td>
+              <td><div class="a-text">Wave 3 readiness call with Tom/Tracie, Derek, and Alli before Sep 30</div><div class="a-detail">Sophie facilitates. Surface any open NS issues before HRIS goes live. Confirm operators feel confident on both systems. Log and freeze all open NS items until Oct 15.</div></td>
+              <td><span class="o-pill o-sophie">Sophie</span></td>
+              <td><span class="t-pill t-pre">Late Sep</span></td>
+            </tr>
+            <tr>
+              <td class="a-num">02</td>
+              <td><div class="a-text">Freeze NS change requests for Wave 3 BUs Oct 1–14</div><div class="a-detail">No new NS configurations, report changes, or non-critical fixes for TNT, JD, and Ion during the first two weeks of October. NS goes into maintenance mode — operators focus entirely on HRIS go-live. Tom logs all NS items and schedules for Oct 15+.</div></td>
+              <td><span class="o-pill o-tom">Tom</span></td>
+              <td><span class="t-pill t-pre">Pre-Oct</span></td>
+            </tr>
+            <tr>
+              <td class="a-num">03</td>
+              <td><div class="a-text">Confirm Derek's co-support — highest individual risk in the plan</div><div class="a-detail">Derek is the only Wave 3 BU operator without a named co-lead. Christy should be confirmed in an active capacity before Oct 1. Sophie to confirm directly — not assumed.</div></td>
+              <td><span class="o-pill o-sophie">Sophie</span></td>
+              <td><span class="t-pill t-now">Now</span></td>
+            </tr>
+            <tr>
+              <td class="a-num">04</td>
+              <td><div class="a-text">Sophie manages a shared Wave 3 issue log for all three BUs</div><div class="a-detail">Single shared doc where Tom/Tracie, Derek/Christy, and Alli/Sarah all log issues in real time. Sophie monitors and routes. Prevents the same problem being escalated three times.</div></td>
+              <td><span class="o-pill o-sophie">Sophie</span></td>
+              <td><span class="t-pill t-pre">Pre-Oct</span></td>
+            </tr>
+            <tr>
+              <td class="a-num">05</td>
+              <td><div class="a-text">Run parallel payroll for Wave 3 BUs for at least one cycle</div><div class="a-detail">Given the concurrent NS hypercare, Wave 3 BUs should not hard cutover on payroll Oct 1. Run one parallel cycle comparing Paylocity output to the prior system before it becomes the single source of truth.</div></td>
+              <td><span class="o-pill o-mike">Mike / Tom</span></td>
+              <td><span class="t-pill t-oct">Oct wk 1</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="mit-block">
+      <div class="mit-header" onclick="toggleMit('m3')">
+        <div class="m-dot ok"></div>
+        <div class="m-title-block">
+          <div class="m-label ok">Opportunity</div>
+          <div class="m-title">BluShark: under-used as a peer resource in October</div>
+          <div class="m-subtitle">Yuan & Dalton will be the most experienced operators in the group by Oct — this knowledge isn't currently being leveraged</div>
+        </div>
+        <div class="m-chevron open" id="chev-m3">▼</div>
+      </div>
+      <div class="mit-body open" id="body-m3">
+        <table class="mit-table">
+          <thead><tr><th style="width:30px">#</th><th>Action</th><th style="width:110px">Owner</th><th style="width:90px">Timing</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="a-num">01</td>
+              <td><div class="a-text">Sophie formally designates Yuan/Dalton as peer resources for Wave 3 HRIS operators</div><div class="a-detail">Make it explicit, not implied. Sophie tells Tom/Tracie, Derek/Christy, and Sarah/Alli that Yuan and Dalton went live on HRIS first and are the first call for "how does this work in practice" questions — before escalating to Mike.</div></td>
+              <td><span class="o-pill o-sophie">Sophie</span></td>
+              <td><span class="t-pill t-pre">Pre-Oct</span></td>
+            </tr>
+            <tr>
+              <td class="a-num">02</td>
+              <td><div class="a-text">BluShark runs a 30-min "lessons learned" session for Wave 3 operators in late September</div><div class="a-detail">Yuan and Dalton share what surprised them in the first 4 weeks on HRIS — what broke, what the implementor didn't cover, what they wish they'd known on day one. Sophie to schedule and facilitate.</div></td>
+              <td><span class="o-pill o-bu">Yuan / Dalton</span></td>
+              <td><span class="t-pill t-pre">Late Sep</span></td>
+            </tr>
+            <tr>
+              <td class="a-num">03</td>
+              <td><div class="a-text">Use BluShark's NS environment to test October configuration changes first</div><div class="a-detail">BluShark will be 3 months post NS go-live in October — the most stable entity. Any non-urgent NS config changes from Wave 2/3 hypercare should be tested in BluShark's environment before rolling to other BUs. Tom to coordinate.</div></td>
+              <td><span class="o-pill o-tom">Tom</span></td>
+              <td><span class="t-pill t-oct">Oct</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== CHANGE MANAGEMENT CALENDAR ===================== -->
+  <div class="section" id="sec-changemanagement">
+    <div class="page-header">
+      <div class="page-title">Change management <strong>calendar</strong></div>
+      <div class="page-subtitle">Apr–Nov · Three swimlanes: corporate owned, corporate supported / BU led, and BU owned · Go-live months: Jul, Sep, Oct</div>
+    </div>
+
+    <div class="card" style="padding: 20px 24px;">
+    <div class="cm-wrap">
+    <div class="cm-grid">
+
+      <div class="cm-month-header">
+        <div></div>
+        <div class="cm-month now">Apr<br><span style="font-size:8px">← now</span></div>
+        <div class="cm-month">May</div>
+        <div class="cm-month">Jun</div>
+        <div class="cm-month go">Jul</div>
+        <div class="cm-month">Aug</div>
+        <div class="cm-month go">Sep</div>
+        <div class="cm-month go">Oct</div>
+        <div class="cm-month">Nov</div>
+      </div>
+
+      <!-- CORPORATE OWNED -->
+      <div class="cm-lane-title corp">Corporate owned · Sophie</div>
+
+      <div class="cm-row">
+        <div class="cm-row-label"><strong>Recurring cadence</strong><small>Biweekly BU meeting</small></div>
+        <div class="cm-cell"><span class="ev ev-done">Biweekly ✓</span></div>
+        <div class="cm-cell"><span class="ev ev-corp">Biweekly</span></div>
+        <div class="cm-cell"><span class="ev ev-corp">Biweekly</span></div>
+        <div class="cm-cell"><span class="ev ev-corp-hi">Weekly</span></div>
+        <div class="cm-cell"><span class="ev ev-corp-hi">Weekly</span></div>
+        <div class="cm-cell"><span class="ev ev-corp-hi">Weekly</span></div>
+        <div class="cm-cell"><span class="ev ev-corp-hi">Weekly</span></div>
+        <div class="cm-cell"><span class="ev ev-corp">Biweekly</span></div>
+      </div>
+
+      <div class="cm-row">
+        <div class="cm-row-label"><strong>Comms + townhalls</strong><small>Emails, Finance/Ops meeting</small></div>
+        <div class="cm-cell"><span class="ev ev-done">Timeline sent ✓</span><span class="ev ev-done">FAQs sent ✓</span></div>
+        <div class="cm-cell"><span class="ev ev-corp-hi">Townhall via Finance/Ops meeting</span><span class="ev ev-corp" style="margin-top:3px">Offer BU townhalls</span></div>
+        <div class="cm-cell"><span class="ev ev-corp">Wave 1 pre-comms</span></div>
+        <div class="cm-cell"><span class="ev ev-corp">Wave 2 pre-comms</span></div>
+        <div class="cm-cell"><span class="ev ev-corp">Wave 3 pre-comms</span></div>
+        <div class="cm-cell"><span class="ev ev-corp">HRIS W2 pre-comms</span></div>
+        <div class="cm-cell"><span class="ev ev-corp">Oct status update</span></div>
+        <div class="cm-cell"><span class="ev ev-corp">Wrap-up comms</span></div>
+      </div>
+
+      <div class="cm-row">
+        <div class="cm-row-label"><strong>Governance</strong><small>Go/no-go · readiness checks</small></div>
+        <div class="cm-cell"></div>
+        <div class="cm-cell"></div>
+        <div class="cm-cell"><span class="ev ev-corp-hi">Wave 1 go/no-go</span></div>
+        <div class="cm-cell"><span class="ev ev-corp-hi">Wave 2 go/no-go</span></div>
+        <div class="cm-cell"><span class="ev ev-corp-hi">Wave 3 go/no-go</span><span class="ev ev-corp-hi" style="margin-top:3px">HRIS W1 go/no-go</span></div>
+        <div class="cm-cell"><span class="ev ev-corp-hi">Wave 3 readiness call</span><span class="ev ev-corp-hi" style="margin-top:3px">HRIS W2 go/no-go</span></div>
+        <div class="cm-cell"><span class="ev ev-corp-hi">Daily HC standup</span></div>
+        <div class="cm-cell"><span class="ev ev-corp">Post-impl. retro</span></div>
+      </div>
+
+      <div class="cm-row">
+        <div class="cm-row-label"><strong>PMO</strong><small>Sophie's owned items</small></div>
+        <div class="cm-cell"><span class="ev ev-corp">Issue log setup</span><span class="ev ev-corp" style="margin-top:3px">Severity framework</span></div>
+        <div class="cm-cell"><span class="ev ev-corp">Escalation map</span><span class="ev ev-corp" style="margin-top:3px">RACI finalized</span></div>
+        <div class="cm-cell"><span class="ev ev-corp">Hypercare prep</span></div>
+        <div class="cm-cell"><span class="ev ev-corp">HC standup design</span></div>
+        <div class="cm-cell"><span class="ev ev-corp">Derek co-lead confirmed</span><span class="ev ev-corp" style="margin-top:3px">Wave 3 issue log</span></div>
+        <div class="cm-cell"><span class="ev ev-corp">Daily standup · Oct</span></div>
+        <div class="cm-cell"><span class="ev ev-corp">PMO retrospective</span></div>
+      </div>
+
+      <hr class="cm-divider">
+
+      <!-- CORPORATE SUPPORTED -->
+      <div class="cm-lane-title supp">Corporate supported · BU led</div>
+
+      <div class="cm-row">
+        <div class="cm-row-label"><strong>NetSuite</strong><small>Training · data · go-live</small></div>
+        <div class="cm-cell"></div>
+        <div class="cm-cell"><span class="ev ev-supp">Data migration kick-off</span></div>
+        <div class="cm-cell"><span class="ev ev-training">W1 NS training</span><span class="ev ev-supp" style="margin-top:3px">Data sign-off W1</span></div>
+        <div class="cm-cell"><span class="ev ev-wave">W1 go-live 7/1</span><span class="ev ev-training" style="margin-top:3px">W2 NS training</span></div>
+        <div class="cm-cell"><span class="ev ev-wave">W2 go-live 8/1</span><span class="ev ev-supp" style="margin-top:3px">Data sign-off W2</span></div>
+        <div class="cm-cell"><span class="ev ev-training">W3 NS training</span><span class="ev ev-wave" style="margin-top:3px">W3 go-live 9/1</span><span class="ev ev-supp" style="margin-top:3px">Data sign-off W3</span></div>
+        <div class="cm-cell"><span class="ev ev-supp">NS config freeze W3</span></div>
+        <div class="cm-cell"><span class="ev ev-supp">NS stable check</span></div>
+      </div>
+
+      <div class="cm-row">
+        <div class="cm-row-label"><strong>HubSpot</strong><small>Training · AM process</small></div>
+        <div class="cm-cell"></div>
+        <div class="cm-cell"><span class="ev ev-supp">AM process design</span></div>
+        <div class="cm-cell"><span class="ev ev-training">W1 HS training</span></div>
+        <div class="cm-cell"><span class="ev ev-wave">W1 go-live 7/1</span><span class="ev ev-training" style="margin-top:3px">W2 HS training</span></div>
+        <div class="cm-cell"><span class="ev ev-wave">W2 go-live 8/1</span><span class="ev ev-training" style="margin-top:3px">W3 HS training</span></div>
+        <div class="cm-cell"><span class="ev ev-wave">W3 go-live 9/1</span></div>
+        <div class="cm-cell"><span class="ev ev-supp">HS adoption check-in</span></div>
+        <div class="cm-cell"></div>
+      </div>
+
+      <div class="cm-row">
+        <div class="cm-row-label"><strong>HRIS / Paylocity</strong><small>Training · payroll</small></div>
+        <div class="cm-cell"></div>
+        <div class="cm-cell"></div>
+        <div class="cm-cell"><span class="ev ev-supp">Employee data audit</span></div>
+        <div class="cm-cell"><span class="ev ev-training">HRIS W1 training</span><span class="ev ev-supp" style="margin-top:3px">Payroll data sign-off</span></div>
+        <div class="cm-cell"><span class="ev ev-training">HRIS W2 training</span></div>
+        <div class="cm-cell"><span class="ev ev-wave">HRIS W1 go-live 9/1</span><span class="ev ev-supp" style="margin-top:3px">Parallel payroll W1</span><span class="ev ev-supp" style="margin-top:3px">BluShark lessons learned</span></div>
+        <div class="cm-cell"><span class="ev ev-wave">HRIS W2 go-live 10/1</span><span class="ev ev-supp" style="margin-top:3px">Parallel payroll W3</span></div>
+        <div class="cm-cell"><span class="ev ev-supp">Payroll stable check</span></div>
+      </div>
+
+      <hr class="cm-divider">
+
+      <!-- BU OWNED -->
+      <div class="cm-lane-title bu">BU owned · BU leaders</div>
+
+      <div class="cm-row">
+        <div class="cm-row-label"><strong>Internal comms</strong><small>BU leaders → their teams</small></div>
+        <div class="cm-cell"></div>
+        <div class="cm-cell"><span class="ev ev-bu">Announce systems plan</span></div>
+        <div class="cm-cell"><span class="ev ev-bu">W1 team prep</span></div>
+        <div class="cm-cell"><span class="ev ev-bu">W1 go-live comms</span><span class="ev ev-bu" style="margin-top:3px">W2 team prep</span></div>
+        <div class="cm-cell"><span class="ev ev-bu">W2 go-live comms</span><span class="ev ev-bu" style="margin-top:3px">W3 team prep</span></div>
+        <div class="cm-cell"><span class="ev ev-bu">W3 go-live comms</span><span class="ev ev-bu" style="margin-top:3px">HRIS team prep</span></div>
+        <div class="cm-cell"><span class="ev ev-bu">HRIS go-live comms</span></div>
+        <div class="cm-cell"></div>
+      </div>
+
+      <div class="cm-row">
+        <div class="cm-row-label"><strong>Training completion</strong><small>Operators + end users</small></div>
+        <div class="cm-cell"></div>
+        <div class="cm-cell"></div>
+        <div class="cm-cell"><span class="ev ev-bu">W1 operators trained</span></div>
+        <div class="cm-cell"><span class="ev ev-bu">W1 users trained</span><span class="ev ev-bu" style="margin-top:3px">W2 operators trained</span></div>
+        <div class="cm-cell"><span class="ev ev-bu">W2 users trained</span><span class="ev ev-bu" style="margin-top:3px">W3 operators trained</span></div>
+        <div class="cm-cell"><span class="ev ev-bu">W3 + HRIS W1 trained</span></div>
+        <div class="cm-cell"><span class="ev ev-bu">HRIS W2 users trained</span></div>
+        <div class="cm-cell"></div>
+      </div>
+
+      <div class="cm-row">
+        <div class="cm-row-label"><strong>Sign-offs</strong><small>UAT · data · payroll</small></div>
+        <div class="cm-cell"></div>
+        <div class="cm-cell"></div>
+        <div class="cm-cell"><span class="ev ev-bu">W1 UAT sign-off</span></div>
+        <div class="cm-cell"><span class="ev ev-bu">W2 UAT sign-off</span></div>
+        <div class="cm-cell"><span class="ev ev-bu">W3 UAT sign-off</span></div>
+        <div class="cm-cell"><span class="ev ev-bu">HRIS UAT sign-off</span><span class="ev ev-bu" style="margin-top:3px">Parallel payroll sign-off W1</span></div>
+        <div class="cm-cell"><span class="ev ev-bu">Parallel payroll sign-off W3</span></div>
+        <div class="cm-cell"><span class="ev ev-bu">All systems sign-off</span></div>
+      </div>
+
+      <div class="cm-legend">
+        <div class="cm-leg"><div class="cm-leg-dot" style="background:#9FE1CB"></div>Corporate owned</div>
+        <div class="cm-leg"><div class="cm-leg-dot" style="background:#CECBF6"></div>Corporate supported · BU led</div>
+        <div class="cm-leg"><div class="cm-leg-dot" style="background:#EF9F27;opacity:0.6"></div>Training session</div>
+        <div class="cm-leg"><div class="cm-leg-dot" style="background:#F5C4B3"></div>Go-live event</div>
+        <div class="cm-leg"><div class="cm-leg-dot" style="background:#D3D1C7"></div>BU owned</div>
+        <div class="cm-leg" style="color:var(--text-dim)">Strikethrough = already complete</div>
+      </div>
+
+    </div>
+    </div>
+    </div>
+  </div>
+
+  <!-- ===================== TRAINING ROLLOUT ===================== -->
+  <div class="section" id="sec-training">
+    <div class="page-header">
+      <div class="page-title">Training <strong>rollout</strong></div>
+      <div class="page-subtitle">Implementors deliver · Corporate supports · Live sessions with recordings · One session per wave, open to all BUs · Apr–Oct 2025</div>
+    </div>
+
+    <div class="card" style="padding: 20px 24px; margin-bottom: 16px;">
+      <div class="section-label">Approach</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:8px;">
+        <div style="padding:14px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border);">
+          <div style="font-size:11px;font-weight:500;margin-bottom:4px;">Format</div>
+          <div style="font-size:11px;color:var(--text-muted);line-height:1.5;">Live sessions delivered by implementors, recorded for on-demand reference. Recordings shared with all BUs within 48hrs of each session.</div>
+        </div>
+        <div style="padding:14px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border);">
+          <div style="font-size:11px;font-weight:500;margin-bottom:4px;">Attendance</div>
+          <div style="font-size:11px;color:var(--text-muted);line-height:1.5;">One session per wave, open to all BUs — not just the wave going live. Cross-BU attendance builds camaraderie and lets stable BUs share experience with newer ones.</div>
+        </div>
+        <div style="padding:14px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border);">
+          <div style="font-size:11px;font-weight:500;margin-bottom:4px;">Content</div>
+          <div style="font-size:11px;color:var(--text-muted);line-height:1.5;">Same core content per system, delivered in separate sessions aligned to each wave's go-live. Implementors lead, corporate supports with HBD-specific context and process nuances.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="training-grid">
+
+      <div class="training-card">
+        <div class="tc-header tc-ns">
+          <div class="tc-title">NetSuite — ERP</div>
+          <div class="tc-meta">HBD Lead: Mike / Tom · Implementor delivers</div>
+        </div>
+        <div class="tc-body">
+          <div class="tc-session">
+            <div class="tc-session-title">Wave 1 NS training</div>
+            <div class="tc-session-meta">Jun · Audience: BluShark (+ all BUs welcome)</div>
+            <div class="tc-session-note">Core NS workflow, chart of accounts, multi-entity setup. BluShark goes live Jul 1.</div>
+          </div>
+          <div class="tc-session">
+            <div class="tc-session-title">Wave 2 NS training</div>
+            <div class="tc-session-meta">Jul · Audience: Hennessey, CJ (+ all BUs)</div>
+            <div class="tc-session-note">Same core content. BluShark operators available as peer resource — invite them to attend and contribute.</div>
+          </div>
+          <div class="tc-session">
+            <div class="tc-session-title">Wave 3 NS training</div>
+            <div class="tc-session-meta">Aug · Audience: TNT, JD, Ion (+ all BUs)</div>
+            <div class="tc-session-note">Final NS training wave. Experienced BUs from W1/W2 present — leverage for Q&A section.</div>
+          </div>
+          <div class="tc-tip">Tip: Run a 30-min "NS tips from the field" segment at end of W2 and W3 sessions, led by the most recently live BU.</div>
+        </div>
+      </div>
+
+      <div class="training-card">
+        <div class="tc-header tc-hs">
+          <div class="tc-title">HubSpot — CRM</div>
+          <div class="tc-meta">HBD Lead: Coulsen / Kathleen · Implementor delivers</div>
+        </div>
+        <div class="tc-body">
+          <div class="tc-session">
+            <div class="tc-session-title">Wave 1 HS training</div>
+            <div class="tc-session-meta">Jun · Audience: BluShark (+ all BUs welcome)</div>
+            <div class="tc-session-note">AM workflow in HubSpot, deal stages, contract management. Emphasize: AMs work in HubSpot only — contracts push to NetSuite automatically.</div>
+          </div>
+          <div class="tc-session">
+            <div class="tc-session-title">Wave 2 HS training</div>
+            <div class="tc-session-meta">Jul · Audience: Hennessey, CJ (+ all BUs)</div>
+            <div class="tc-session-note">Same core content. Include real examples from BluShark's first weeks live if available.</div>
+          </div>
+          <div class="tc-session">
+            <div class="tc-session-title">Wave 3 HS training</div>
+            <div class="tc-session-meta">Aug · Audience: TNT, JD, Ion (+ all BUs)</div>
+            <div class="tc-session-note">Final HS training wave. By this point 2 waves live — invite early adopters to share what's working.</div>
+          </div>
+          <div class="tc-tip">Tip: The variable invoicing / PPC flow (NS → HS) should be covered explicitly in every session so AMs understand what they will and won't see in HubSpot.</div>
+        </div>
+      </div>
+
+      <div class="training-card">
+        <div class="tc-header tc-hr">
+          <div class="tc-title">Paylocity — HRIS</div>
+          <div class="tc-meta">HBD Lead: Mike · Implementor delivers</div>
+        </div>
+        <div class="tc-body">
+          <div class="tc-session">
+            <div class="tc-session-title">HRIS Wave 1 training</div>
+            <div class="tc-session-meta">Jul · Audience: BluShark (+ all BUs welcome)</div>
+            <div class="tc-session-note">Paylocity setup, employee self-service, payroll workflow, direct deposit. BluShark goes live Sep 1 — 6 weeks to absorb before go-live.</div>
+          </div>
+          <div class="tc-session">
+            <div class="tc-session-title">HRIS Wave 2 training</div>
+            <div class="tc-session-meta">Aug · Audience: All remaining BUs</div>
+            <div class="tc-session-note">All 5 remaining BUs trained together given Oct 1 simultaneous go-live. Reinforces that this is a shared rollout. BluShark operators invited to attend and share experience.</div>
+          </div>
+          <div class="tc-session">
+            <div class="tc-session-title">BluShark lessons learned</div>
+            <div class="tc-session-meta">Late Sep · Audience: TNT, JD, Ion, Hennessey, CJ</div>
+            <div class="tc-session-note">Yuan & Dalton share practical experience from first 4 weeks live. Not formal training — peer knowledge share. Facilitated by Sophie.</div>
+          </div>
+          <div class="tc-tip">Tip: Parallel payroll for Wave 3 BUs (TNT, JD, Ion) in Oct wk 1 — ensure this is covered in HRIS W2 training so operators know what to expect and how to validate output.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+function switchTab(id, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  el.classList.add('active');
+}
+
+function filterSys(sys, el) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  ['ns','hs','hr'].forEach(s => {
+    document.getElementById('card-' + s).classList.toggle('dimmed', sys !== 'all' && s !== sys);
+  });
+}
+
+function toggleMit(id) {
+  document.getElementById('body-' + id).classList.toggle('open');
+  document.getElementById('chev-' + id).classList.toggle('open');
+}
+
+document.querySelectorAll('.hc-row').forEach(row => {
+  row.addEventListener('click', function() {
+    const bu = this.dataset.bu;
+    const isHl = this.classList.contains('hl');
+    document.querySelectorAll('.hc-row').forEach(r => r.classList.remove('hl'));
+    if (!isHl) document.querySelectorAll(`.hc-row[data-bu="${bu}"]`).forEach(r => r.classList.add('hl'));
+  });
+});
+
+function tip(e, title, body) {
+  const t = document.getElementById('tooltip');
+  t.innerHTML = '<strong>' + title + '</strong>' + body;
+  t.style.display = 'block';
+  moveTip(e);
+}
+function hideTip() { document.getElementById('tooltip').style.display = 'none'; }
+function moveTip(e) {
+  const t = document.getElementById('tooltip');
+  t.style.left = (e.clientX + 14) + 'px';
+  t.style.top = (e.clientY - 10) + 'px';
+}
+document.addEventListener('mousemove', moveTip);
+</script>
+</body>
+</html>
